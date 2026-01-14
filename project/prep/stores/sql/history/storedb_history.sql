@@ -9,7 +9,7 @@ CREATE TABLE [watermarktable]
 GO
 
 INSERT INTO [watermarktable]
-VALUES ('[dbo].[products]','1/1/2025 12:00:00 AM'),('[dbo].[store_customers]','1/1/2025 12:00:00 AM'), ('[dbo].[store_orders]','1/1/2025 12:00:00 AM')
+VALUES ('[dbo].[products]','1/1/2025 12:00:00 AM'),('[dbo].[store_customers]','1/1/2025 12:00:00 AM'), ('[dbo].[store_orders]','1/1/2025 12:00:00 AM'),
 ('[dbo].[inventory]','1/1/2025 12:00:00 AM');
 GO
 
