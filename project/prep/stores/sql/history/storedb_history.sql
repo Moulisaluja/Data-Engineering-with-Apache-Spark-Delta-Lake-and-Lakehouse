@@ -148,7 +148,7 @@ PRINT 'Row 2500 inserted';
 GO
 
 CREATE TABLE [inventory] (
-     [inventory_date] DATE ,
+     [inventory_date] VARCHAR(255) ,
 	 [product] VARCHAR(100),
 	 [inventory] INTEGER,
 	 [updated_at] DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
