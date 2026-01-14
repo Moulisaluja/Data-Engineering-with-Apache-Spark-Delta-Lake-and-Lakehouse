@@ -151,7 +151,7 @@ CREATE TABLE [inventory] (
      [inventory_date] DATE ,
 	 [product] VARCHAR(100),
 	 [inventory] INTEGER,
-	 [updated_at] TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+	 [updated_at] DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 	 );
 	 
 INSERT INTO [inventory]
