@@ -9,7 +9,8 @@ CREATE TABLE [watermarktable]
 GO
 
 INSERT INTO [watermarktable]
-VALUES ('[dbo].[products]','1/1/2025 12:00:00 AM'),('[dbo].[store_customers]','1/1/2025 12:00:00 AM'), ('[dbo].[store_orders]','1/1/2025 12:00:00 AM');
+VALUES ('[dbo].[products]','1/1/2025 12:00:00 AM'),('[dbo].[store_customers]','1/1/2025 12:00:00 AM'), ('[dbo].[store_orders]','1/1/2025 12:00:00 AM')
+('[dbo].[[inventory]]','1/1/2025 12:00:00 AM');
 GO
 
 DROP PROCEDURE IF EXISTS [usp_write_watermark];
@@ -146,3 +147,43 @@ INSERT INTO store_orders([order_number],[customer_id],[product_id],[order_date],
 PRINT 'Row 2500 inserted';
 GO
 
+CREATE TABLE [inventory] (
+     [inventory_date] DATE ,
+	 [product] VARCHAR(100),
+	 [inventory] INTEGER,
+	 [updated_at] TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+	 );
+	 
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Watch', 100);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Vaccum', 500);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Airconditioner', 45);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Microwave', 34);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'DVD', 6789);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'TV', 43);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Keyboard', 564);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Mice', 900);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Monitor', 435);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Mobile', 659);
+INSERT INTO [inventory]
+([inventory_date], [product], [inventory])
+VALUES('18/04/2025', 'Phones', 34);
