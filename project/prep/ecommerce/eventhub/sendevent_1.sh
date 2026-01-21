@@ -4,10 +4,10 @@ while getopts e:n:r:s:t: option
 do
 case "${option}"
 in
-e) EVENTHUB_NAME1=${OPTARG};;
+e) EVENTHUB_NAME=${OPTARG};;
 n) EVENTHUB_NAMESPACE=${OPTARG};;
 r) RESOURCEGROUPNAME=${OPTARG};;
-s) EVENT_SUBSCRIPTION1=${OPTARG};;
+s) EVENT_SUBSCRIPTION=${OPTARG};;
 t) TOPIC=${OPTARG};;
 esac
 done
