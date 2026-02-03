@@ -1,0 +1,3 @@
+order_number,customer_id,product_id,order_date,units,sale_price,currency,order_mode,updated_at
+1501,883,8,06/23/2025,6,47.65,CAD,DELETE,2026-01-31 20:20:19
+2345,317,1,10/03/2025,1,32.10,USD,DELETE,2026-01-31 20:20:19
