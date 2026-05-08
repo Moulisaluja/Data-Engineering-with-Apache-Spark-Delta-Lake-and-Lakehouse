@@ -1,0 +1,331 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: electroniz_product_golden_record_customers
+name: Product Golden Record Customers (PII-Masked)
+version: 1.1.0
+status: active
+description:
+  purpose: >
+    Provides a PII-masked, analyst-safe table of the MDM golden record customers
+    within the product schema. Derived from the survivorship-resolved materialized
+    view (mvw_electroniz_gold_golden_record_customers) with all sensitive PII columns
+    (phone, address, credit_card, email) present but masked using standardised
+    redaction patterns. Intended for safe sharing across analytics, marketing, and
+    CRM consumers who require column presence but not raw PII values.
+  usage: >
+    Used as the primary data product for downstream analytics, dashboards,
+    and CRM integrations where PII access is not required or not permitted.
+    Consumers should use this table in preference to the base MDM materialized view.
+    All PII columns are present but masked — raw values are not accessible via this table.
+  limitations: >
+    - phone is masked to last 4 digits only (format: ***-***-XXXX).
+    - email is masked to domain only (format: ***@domain.com).
+    - credit_card is masked to last 4 digits only (format: ****-****-****-XXXX).
+    - address is fully redacted (value: [REDACTED]) as no partial address
+      information is considered safe for a published data product.
+    - Inherits all survivorship limitations from the upstream MDM golden record MV:
+      only customers with at least one matched cluster are included.
+    - Represents survived (best) attributes per cluster — not a raw source table.
+    - Freshness is bounded by the upstream MDM pipeline refresh cadence (24 hours).
+  customProperties:
+    - property: "sensitivity"
+      value: "internal"
+      description: "All PII columns masked; safe for broad internal analytics consumption"
+    - property: "derivedFrom"
+      value: "electroniz_catalog.electroniz_gold_master_schema.mvw_electroniz_gold_golden_record_customers"
+      description: "Source MDM materialized view from which this table is derived"
+    - property: "piiStatus"
+      value: "pii_masked"
+      description: >
+        phone, address, credit_card, and email columns are present but masked.
+        Raw PII values are not exposed.
+  authoritativeDefinitions:
+    - url: "https://entropy-data.com/policies/gdpr-compliance"
+      type: "businessDefinition"
+      description: "GDPR compliance policy — this table complies by masking all PII fields"
+
+schema:
+  - name: electroniz_product_golden_record_customers
+    physicalType: TABLE
+    description: >
+      PII-masked table derived from the MDM golden record materialized view.
+      Each row represents one de-duplicated customer entity after MDM survivorship.
+      Columns included: unified_id, cluster_id, resolved_full_name, resolved_postal_code,
+      email, phone, address, credit_card.
+      All PII columns are masked using standardised redaction patterns — raw values
+      are not accessible.
+      Attributes resolved using survivorship rules from the upstream pipeline:
+        Rule 1  resolved_full_name  : longest non-null name, then most recently updated
+        Rule 2  email               : preferred domain rank (gmail > hotmail > yahoo > others), then most recently updated
+        Rule 3  phone               : best format score, then highest digit count, then most recently updated
+        Rule 4  address             : longest non-null expanded address (abbreviations normalised), then most recently updated
+        Rule 5  resolved_postal_code: longest non-null/non-blank postal code, then most recently updated
+        Rule 6  credit_card         : most recently updated non-null/non-blank value
+        Rule 7  unified_id          : deterministic MD5 hash of cluster_id prefixed with GR-
+    properties:
+
+      - name: unified_id
+        logicalType: string
+        physicalType: STRING
+        description: >
+          Unique identifier assigned to the unified/de-duplicated customer entity.
+          Survivorship Rule 7: deterministic MD5 hash of cluster_id prefixed with 'GR-'.
+          Serves as the primary consumer-facing key for this data product,
+          distinct from the internal cluster_id produced by the MDM matching stage.
+        businessName: Unified Customer ID
+        primaryKey: true
+        required: true
+        unique: true
+        classification: internal
+        examples:
+          - "GR-a1b2c3d4e5f6"
+          - "GR-f7e8d9c0b1a2"
+
+      - name: cluster_id
+        logicalType: string
+        physicalType: STRING
+        description: >
+          Unique identifier for the customer cluster produced by the MDM matching/clustering stage.
+          All source records that resolve to the same real-world customer share this cluster_id.
+          Inherited directly from the upstream MDM golden record MV without modification.
+        businessName: Cluster ID
+        required: true
+        unique: true
+        classification: internal
+        examples:
+          - "C_1932"
+          - "E_3134"
+
+      - name: resolved_full_name
+        logicalType: string
+        physicalType: STRING
+        description: >
+          Resolved full customer name for the cluster.
+          Survivorship Rule 1: NULL values are excluded first. Among remaining records,
+          the longest customer_name is preferred (preserves titles like "Dr.", suffixes
+          like "Jr."). Ties broken by most recent updated_at.
+        businessName: Customer Full Name
+        required: false
+        classification: internal
+        criticalDataElement: true
+        examples:
+          - "Dr. Jane Smith Jr."
+          - "Robert A. Johnson"
+
+      - name: resolved_postal_code
+        logicalType: string
+        physicalType: STRING
+        description: >
+          Survived postal/ZIP code for the cluster. Not classified as PII.
+          Survivorship Rule 5: NULL and blank values are excluded first. The longest
+          non-blank postal code is preferred (e.g., ZIP+4 "10001-1234" over "10001").
+          Ties broken by most recent updated_at.
+        businessName: Postal Code
+        required: false
+        classification: internal
+        examples:
+          - "10001-1234"
+          - "SW1A 1AA"
+
+      - name: email
+        logicalType: string
+        physicalType: STRING
+        description: >
+          Masked preferred email address. Only the domain portion is retained.
+          Survivorship Rule 2: NULL values excluded first. Preferred domain rank applied
+          (gmail.com=1, hotmail.com=2, yahoo.com=3, others=4). Ties broken by most recent updated_at.
+          Format: ***@domain.com
+          Raw email value is not exposed. Masking applied via:
+          CONCAT('***', SUBSTRING(preferred_email, INSTR(preferred_email, '@')))
+        businessName: Masked Email
+        required: false
+        classification: pii_masked
+        piiMaskingPattern: "***@<domain>"
+        examples:
+          - "***@gmail.com"
+          - "***@yahoo.com"
+
+      - name: phone
+        logicalType: string
+        physicalType: STRING
+        description: >
+          Masked phone number. Only the last 4 digits are retained.
+          Survivorship Rule 3: NULL and invalid values (< 7 digits) excluded first.
+          Ranked by format quality score (5=perfect international, 1=digits only),
+          then highest digit count, then most recent updated_at.
+          Format: ***-***-XXXX
+          Raw phone value is not exposed. Masking applied via:
+          CONCAT('***-***-', RIGHT(phone, 4))
+        businessName: Masked Phone
+        required: false
+        classification: pii_masked
+        piiMaskingPattern: "***-***-<last4digits>"
+        examples:
+          - "***-***-1234"
+          - "***-***-9876"
+
+      - name: address
+        logicalType: string
+        physicalType: STRING
+        description: >
+          Fully redacted address field. No partial address information is retained.
+          Survivorship Rule 4: NULL values excluded first. Longest non-null address preferred
+          after abbreviation expansion via expand_address() UDF (e.g. St→Street, Av→Avenue).
+          Ties broken by most recent updated_at.
+          Value is always the static string '[REDACTED]' in this data product.
+          Full redaction applied as no partial address value is considered safe
+          for a published data product.
+        businessName: Redacted Address
+        required: true
+        classification: pii_masked
+        piiMaskingPattern: "[REDACTED]"
+        examples:
+          - "[REDACTED]"
+
+      - name: credit_card
+        logicalType: string
+        physicalType: STRING
+        description: >
+          Masked credit card number. Only the last 4 digits are retained,
+          following PCI-DSS masking standards.
+          Survivorship Rule 6: NULL and blank values excluded first. Most recently
+          updated non-null value is selected (no format scoring applied).
+          Format: ****-****-****-XXXX
+          Raw credit card value is not exposed. Masking applied via:
+          CONCAT('****-****-****-', RIGHT(credit_card, 4))
+        businessName: Masked Credit Card
+        required: false
+        classification: pii_masked
+        piiMaskingPattern: "****-****-****-<last4digits>"
+        examples:
+          - "****-****-****-5678"
+          - "****-****-****-1234"
+
+    quality:
+      - type: library
+        metric: rowCount
+        mustBeGreaterThan: 1
+        description: >
+          The golden customers table must return at least 1 row.
+          Row count must match the upstream MDM golden record MV row count exactly,
+          since this table is a column-level projection only (no row filtering applied).
+
+      - type: library
+        metric: duplicateValues
+        description: Each unified_id must appear exactly once — primary consumer-facing key for this data product.
+        arguments:
+          properties:
+            - unified_id
+        mustBe: 0
+
+      - type: text
+        description: >
+          address column must always contain the static value '[REDACTED]'.
+          Any row where address != '[REDACTED]' is a blocking contract violation.
+
+      - type: text
+        description: >
+          email must always follow the pattern ***@<domain>.
+          Validated by checking all values start with '***@'.
+
+      - type: text
+        description: >
+          phone must always follow the pattern ***-***-XXXX.
+          Validated by checking all values start with '***-***-'.
+
+      - type: text
+        description: >
+          credit_card must always follow the pattern ****-****-****-XXXX.
+          Validated by checking all values start with '****-****-****-'.
+
+      - type: text
+        description: >
+          The table must not expose raw preferred_email, resolved_address, or unmasked
+          phone and credit_card columns. Validated at deploy time by schema introspection —
+          presence of any unmasked PII columns is a blocking contract violation.
+
+      - type: text
+        description: >
+          Row count of this table must equal the row count of the source MV
+          (electroniz_catalog.electroniz_gold_master_schema.mvw_electroniz_gold_golden_record_customers)
+          since no row-level filtering is applied — only columns are projected and masked.
+
+servers:
+  - server: production
+    environment: prod
+    type: databricks
+    catalog: electroniz_catalog
+    schema: electroniz_product_schema
+
+team:
+  name: data-engineering
+  description: >
+    MDM golden record pipeline and derived data products owned by the Data Engineering team.
+    This PII-masked table is published as an official data product for broad consumer access.
+  members:
+    - username: owner@example.com
+      name: Pipeline Owner
+      role: Owner
+  authoritativeDefinitions:
+    - type: slack
+      url: https://slack.example.com/teams/data-engineering
+
+roles:
+  - role: analyst_read
+    description: >
+      Read-only access to the PII-masked golden customers table.
+      Granted to all analytics, marketing, and CRM consumers by default.
+      No additional PII access approval required for this role as all PII is masked.
+  - role: mdm_pipeline_write
+    description: >
+      Write access reserved for the MDM DLT pipeline service principal.
+      Applies to the upstream MV only — this table is read-only by nature.
+
+slaProperties:
+  - property: availability
+    value: 99.9%
+    description: Databricks platform uptime guarantee (inherited from platform SLA)
+  - property: retention
+    value: "2"
+    unit: years
+    description: >
+      Retention governed by the upstream MDM golden record MV (2 years).
+  - property: freshness
+    value: "24"
+    unit: hours
+    description: >
+      Table freshness is bounded by the upstream MDM DLT pipeline refresh cadence.
+      Data in this table is at most 24 hours stale relative to source systems.
+  - property: support
+    value: business hours
+    description: Support available during business hours only
+
+price:
+  priceAmount: 0
+  priceCurrency: USD
+  priceUnit: monthly
+
+tags:
+  - mdm
+  - golden-record
+  - customers
+  - e-commerce
+  - pii-masked
+  - data-product
+  - product-schema
+
+customProperties:
+  - property: dataPlatformRole
+    value: role_golden_customers_product_v1
+  - property: sourceTable
+    value: electroniz_catalog.electroniz_gold_master_schema.mvw_electroniz_gold_golden_record_customers
+  - property: objectType
+    value: TABLE
+  - property: upstreamPipeline
+    value: mvw_mdm_survivorship
+  - property: piiColumnsMasked
+    value: "email, phone, address, credit_card"
+  - property: targetTable
+    value: electroniz_catalog.electroniz_product_schema.electroniz_product_golden_record_customers
+
+contractCreatedTs: "2025-05-07T00:00:00Z"
