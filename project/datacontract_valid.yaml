@@ -338,32 +338,27 @@ servers:
 
 team:
 
-  - role: dataOwner
+  - username: data.owner@electroniz.com
+    name: Data Owner
+    role: dataOwner
     description: >
-      Accountable for governance, lifecycle management, and approval of
-      contract-level changes.
+      Accountable for governance, lifecycle management,
+      and approval of contract-level changes.
 
-    members:
-      - username: data.owner@electroniz.com
-        name: Data Owner
-
-  - role: dataSteward
+  - username: data.steward@electroniz.com
+    name: Data Steward
+    role: dataSteward
     description: >
       Responsible for metadata quality, contract validation,
       and consumer coordination.
 
-    members:
-      - username: data.steward@electroniz.com
-        name: Data Steward
-
-  - role: dataCustodian
+  - username: data.engineering@electroniz.com
+    name: Data Engineering Team
+    role: dataCustodian
     description: >
-      Responsible for implementation, deployment, storage,
-      operational reliability, and refresh management.
-
-    members:
-      - username: data.engineering@electroniz.com
-        name: Data Engineering Team
+      Responsible for implementation, deployment,
+      storage, operational reliability,
+      and refresh management.
 
 slaProperties:
 
